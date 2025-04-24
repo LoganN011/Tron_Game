@@ -4,8 +4,9 @@ import Brillo
 import Brillo.Interface.IO.Game (Event (EventKey), Key (Char), KeyState (Up))
 
 data Direction = UP | DOWN  | LEFT  | RIGHT
-data Player = AI Direction Pos | Human Direction Pos -- add an index of what 
---player it represents so 0 or 1 so I know what visteded array and stuff i need to look at 
+  deriving (Eq,Show)
+data Player = AI Direction Pos | Human Direction Pos
+  deriving (Eq,Show)
 type Pos = (Float,Float)
 
 move :: Direction -> Pos -> Pos
@@ -18,8 +19,16 @@ aiMove :: Direction -> Pos -> Pos
 aiMove = move
 
 
+willHitSomething :: Player -> State -> Bool
 
-size = 500
+willHitSomething player s = case player of 
+                              (Human d p) -> go d p
+                              (AI d p ) -> go d p 
+  where 
+    go d p = 
+      let newPos = move d p 
+      in newPos `elem` (visitedAI s) || newPos `elem` (visitedHuman s)
+-- need to update to check if we are going off the screen somehow 
 
 
 data State =
@@ -28,12 +37,11 @@ data State =
     players :: [Player],
     visitedAI :: [Pos]
 
-    } -- deriving(Eq,Show)
+    } deriving(Eq,Show)
 
 initState:: State
 initState = MkState
             []
-            --(replicate 500 (replicate 500 False))
             --[Human LEFT (200,200)]
             [AI RIGHT (-200,200), Human LEFT (200,200)]
             []  
@@ -48,8 +56,7 @@ stateToPicture s =pictures [ pictures (go (players s)), color white (line (visit
 
 stateToState:: State -> State
 stateToState s = s 
-  { players = newPlayers, visitedHuman = visitedHuman s ++ newVisitedHuman, visitedAI = visitedAI s ++ newVisitedAI
-  }
+  { players = newPlayers, visitedHuman = visitedHuman s ++ newVisitedHuman, visitedAI = visitedAI s ++ newVisitedAI }
   where
     (newPlayers, newVisitedHuman, newVisitedAI) = go (players s)
 
