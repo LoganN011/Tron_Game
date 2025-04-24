@@ -4,7 +4,8 @@ import Brillo
 import Brillo.Interface.IO.Game (Event (EventKey), Key (Char), KeyState (Up))
 
 data Direction = UP | DOWN  | LEFT  | RIGHT
-data Player = AI Pos | Human Direction Pos
+data Player = AI Direction Pos | Human Direction Pos -- add an index of what 
+--player it represents so 0 or 1 so I know what visteded array and stuff i need to look at 
 type Pos = (Float,Float)
 
 move :: Direction -> Pos -> Pos
@@ -23,8 +24,7 @@ size = 500
 
 data State =
   MkState {
-    --visted :: [[Bool]], -- maybe make this a list of POS so I can draw the line easier or have both
-    visited :: [Pos],
+    visited :: [Pos], -- need to convert this to a 2d list 
     players :: [Player],
     grid :: [[Pos]]
 
@@ -35,6 +35,7 @@ initState = MkState
             []
             --(replicate 500 (replicate 500 False))
             [Human LEFT (200,200)]
+            --[AI RIGHT (-200,200), Human LEFT (200,200)]
             [[]] -- make method to fill in all of the postions based on the size or something similar. 
             -- might not need if I just do the postions visted list thing
 
@@ -46,7 +47,7 @@ stateToPicture s =pictures [ pictures (go (players s)), color white (line (visit
   where
     go [] = []
     go (Human _ (x,y):rest) = Color white (Polygon [(x + dx, y + dy) | dx <- [-1..1], dy <- [-1..1]]) : go rest
-    go (AI (x,y):rest) = Color white (Polygon [(x + dx, y + dy) | dx <- [-1..1], dy <- [-1..1]]) : go rest
+    go (AI _ (x,y):rest) = Color orange (Polygon [(x + dx, y + dy) | dx <- [-1..1], dy <- [-1..1]]) : go rest
 
 stateToState:: State -> State
 stateToState s = s { players = newPlayers, visited = visited s ++ newVisited }
@@ -58,10 +59,10 @@ stateToState s = s { players = newPlayers, visited = visited s ++ newVisited }
       let newPos = move d p
           (restPlayers, restVisited) = go rest
       in (Human d newPos : restPlayers, newPos : restVisited)
-    go (AI p : rest) =
+    go (AI d p : rest) =
       let newPos = aiMove RIGHT p
           (restPlayers, restVisited) = go rest
-      in (AI newPos : restPlayers, newPos : restVisited)
+      in (AI d newPos : restPlayers, newPos : restVisited)
 
 
 -- stateToState s = s {players = go (players s)}
@@ -76,8 +77,8 @@ eventUpdate (EventKey (Char c) _ _ _) s = case c of
                                             'a' -> s { players = updateHumanDirection LEFT s} 
                                             's' -> s { players = updateHumanDirection DOWN s} 
                                             'd' -> s { players = updateHumanDirection RIGHT s} 
-                                            _ -> initState
-eventUpdate _ s = initState
+                                            _ -> s
+eventUpdate _ s = s
 
 
 updateHumanDirection :: Direction-> State  -> [Player]
