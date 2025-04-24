@@ -24,9 +24,9 @@ size = 500
 
 data State =
   MkState {
-    visited :: [Pos], -- need to convert this to a 2d list 
+    visitedHuman :: [Pos], -- need to convert this to a 2d list 
     players :: [Player],
-    grid :: [[Pos]]
+    visitedAI :: [Pos]
 
     } -- deriving(Eq,Show)
 
@@ -34,35 +34,35 @@ initState:: State
 initState = MkState
             []
             --(replicate 500 (replicate 500 False))
-            [Human LEFT (200,200)]
-            --[AI RIGHT (-200,200), Human LEFT (200,200)]
-            [[]] -- make method to fill in all of the postions based on the size or something similar. 
-            -- might not need if I just do the postions visted list thing
-
-
-
+            --[Human LEFT (200,200)]
+            [AI RIGHT (-200,200), Human LEFT (200,200)]
+            []  
+            
 
 stateToPicture:: State -> Picture
-stateToPicture s =pictures [ pictures (go (players s)), color white (line (visited s))]
+stateToPicture s =pictures [ pictures (go (players s)), color white (line (visitedHuman s)),color orange (line (visitedAI s)) ]
   where
     go [] = []
     go (Human _ (x,y):rest) = Color white (Polygon [(x + dx, y + dy) | dx <- [-1..1], dy <- [-1..1]]) : go rest
     go (AI _ (x,y):rest) = Color orange (Polygon [(x + dx, y + dy) | dx <- [-1..1], dy <- [-1..1]]) : go rest
 
 stateToState:: State -> State
-stateToState s = s { players = newPlayers, visited = visited s ++ newVisited }
- where
-    (newPlayers, newVisited) = go (players s)
+stateToState s = s 
+  { players = newPlayers, visitedHuman = visitedHuman s ++ newVisitedHuman, visitedAI = visitedAI s ++ newVisitedAI
+  }
+  where
+    (newPlayers, newVisitedHuman, newVisitedAI) = go (players s)
 
-    go [] = ([], [])
+    go [] = ([], [], [])
     go (Human d p : rest) =
       let newPos = move d p
-          (restPlayers, restVisited) = go rest
-      in (Human d newPos : restPlayers, newPos : restVisited)
+          (restPlayers, restHuman, restAI) = go rest
+      in (Human d newPos : restPlayers, newPos : restHuman, restAI)
+
     go (AI d p : rest) =
       let newPos = aiMove RIGHT p
-          (restPlayers, restVisited) = go rest
-      in (AI d newPos : restPlayers, newPos : restVisited)
+          (restPlayers, restHuman, restAI) = go rest
+      in (AI d newPos : restPlayers, restHuman, newPos : restAI)
 
 
 -- stateToState s = s {players = go (players s)}
