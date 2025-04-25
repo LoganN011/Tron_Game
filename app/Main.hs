@@ -15,12 +15,16 @@ move DOWN (x, y) = (x, y-1)
 move RIGHT  (x, y) = (x+1, y)
 move LEFT  (x, y) = (x-1, y)
 
-aiMove :: Direction -> Pos -> Pos
-aiMove = move
+aiMove :: Player -> State -> Pos
+aiMove ai@(AI d p) s = if willHitSomething ai s then undefined else move d p 
+aiMove (Human d p) s = move d p 
+
+changeDirection :: Player -> Player
+changeDirection (AI d p ) = undefined;
+changeDirection (Human _ _) = undefined
 
 
 willHitSomething :: Player -> State -> Bool
-
 willHitSomething player s = case player of 
                               (Human d p) -> go d p
                               (AI d p ) -> go d p 
@@ -66,8 +70,8 @@ stateToState s = s
           (restPlayers, restHuman, restAI) = go rest
       in (Human d newPos : restPlayers, newPos : restHuman, restAI)
 
-    go (AI d p : rest) =
-      let newPos = aiMove RIGHT p
+    go (ai@(AI d p) : rest) =
+      let newPos = aiMove ai s
           (restPlayers, restHuman, restAI) = go rest
       in (AI d newPos : restPlayers, restHuman, newPos : restAI)
 
@@ -97,7 +101,7 @@ updateHumanDirection d s = foldr go [] (players s)
 
 
 main :: IO ()
-main = play FullScreen--(InWindow "Tron" (100,100) (size,size))
+main = play FullScreen--(InWindow "Tron" (500,500) (100,100))
   black
   60 -- frame rate so maybe lower if it moves too fast or something im not sure
   initState
