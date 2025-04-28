@@ -30,6 +30,26 @@
   (major1) == 1 && (major2) <  13 || \
   (major1) == 1 && (major2) == 13 && (minor) <= 3)
 #endif /* MIN_VERSION_brillo */
+/* package random-1.3.1 */
+#ifndef VERSION_random
+#define VERSION_random "1.3.1"
+#endif /* VERSION_random */
+#ifndef MIN_VERSION_random
+#define MIN_VERSION_random(major1,major2,minor) (\
+  (major1) <  1 || \
+  (major1) == 1 && (major2) <  3 || \
+  (major1) == 1 && (major2) == 3 && (minor) <= 1)
+#endif /* MIN_VERSION_random */
+/* package text-2.0.2 */
+#ifndef VERSION_text
+#define VERSION_text "2.0.2"
+#endif /* VERSION_text */
+#ifndef MIN_VERSION_text
+#define MIN_VERSION_text(major1,major2,minor) (\
+  (major1) <  2 || \
+  (major1) == 2 && (major2) <  0 || \
+  (major1) == 2 && (major2) == 0 && (minor) <= 2)
+#endif /* MIN_VERSION_text */
 
 /* tool gcc-13 */
 #ifndef TOOL_VERSION_gcc
