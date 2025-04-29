@@ -54,11 +54,18 @@ willHitSomething player s = case player of
   where
     go d p =
       let newPos = move d p
-      in newPos `elem` (visitedAI s) || newPos `elem` (visitedHuman s)
+      in newPos `elem` (visitedAI s) || newPos `elem` (visitedHuman s) || outOfBounds newPos
 -- need to update to check if we are going off the screen somehow 
 
-test::  (Int,Int)
-test = inlinePerformIO getScreenSize
+screenSize::  (Int,Int)
+screenSize = inlinePerformIO getScreenSize
+
+outOfBounds :: Pos -> Bool
+outOfBounds (x, y) =
+  let (w, h) = screenSize
+      halfW = fromIntegral w / 2
+      halfH = fromIntegral h / 2
+  in x < (-halfW) || x > halfW || y < (-halfH) || y > halfH
 
 data State =
   MkState {
@@ -97,7 +104,7 @@ stateToState s
           newPositions = map (\case
                                 Human _ p -> p
                                 AI _ p -> p) newPlayers
-          collision = any (`elem` allVisited) newPositions
+          collision = any (\pos -> pos`elem` allVisited || outOfBounds pos) newPositions
       in if collision
          then s { gameOver = True } 
          else s { players = newPlayers,
