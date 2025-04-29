@@ -3,98 +3,11 @@
 module Main where
 import Brillo
 import Brillo.Interface.IO.Game 
-import Brillo.Interface.Environment
-import Data.Text.Internal.Unsafe
-import System.Random
 
-data Direction = UP | DOWN  | LEFT  | RIGHT
-  deriving (Eq,Show)
-data Player = AI Direction Pos | Human Direction Pos
-  deriving (Eq,Show)
-type Pos = (Float,Float)
-
-move :: Direction -> Pos -> Pos -- Update move to end the game if it moves into a place that is already visted
-move UP (x, y) = (x, y+1)
-move DOWN (x, y) = (x, y-1)
-move RIGHT  (x, y) = (x+1, y)
-move LEFT  (x, y) = (x-1, y)
-
-aiMove :: Player -> State -> (Direction, Pos)
-aiMove ai@(AI d p) s = inlinePerformIO ( do
-  turn <- turnChance
-  let shouldTurn = turn || willHitSomething ai s
-  if shouldTurn
-    then do
-      let AI newDir _ = changeDirection ai
-      return (newDir, move newDir p)
-    else return (d, move d p) )
-aiMove (Human d p) s = (d,move d p)
+import Player
 
 
-changeDirection :: Player ->  Player
-changeDirection (AI d p ) = inlinePerformIO (do
-  gen <-  newStdGen
-  let newDirection = randomTuple gen (directionOptions d)
-  return  (AI newDirection p))
-changeDirection (Human _ _) = undefined
-
-
-randomTuple :: RandomGen g => g -> (Direction, Direction) -> Direction
-randomTuple gen (x, y) =
-    let (n, _) = randomR (0 :: Int , 1:: Int) gen
-    in if n == 0 then x else y
-  
-
-directionOptions :: Direction -> (Direction,Direction)
-directionOptions UP = (LEFT,RIGHT)
-directionOptions LEFT = (UP,DOWN)
-directionOptions DOWN = (RIGHT,LEFT)
-directionOptions RIGHT = (DOWN,UP)
-
-willHitSomething :: Player -> State -> Bool
-willHitSomething player s = case player of
-                              (Human d p) -> go d p
-                              (AI d p ) -> go d p
-  where
-    go d p =
-      let newPos = move d p
-      in newPos `elem` (visitedAI s) || newPos `elem` (visitedHuman s) || outOfBounds newPos
--- need to update to check if we are going off the screen somehow 
-
-screenSize::  (Int,Int)
-screenSize = inlinePerformIO getScreenSize
-
-outOfBounds :: Pos -> Bool
-outOfBounds (x, y) =
-  let (w, h) = screenSize
-      halfW = fromIntegral w / 2
-      halfH = fromIntegral h / 2
-  in x < (-halfW) || x > halfW || y < (-halfH) || y > halfH
-
-turnChance :: IO Bool
-turnChance =   do
-  gen <- newStdGen
-  let (n, _) = randomR (1::Int, 50::Int) gen  -- 1 in 10 chance to turn
-  return (n == 1) 
-
-data State =
-  MkState {
-    visitedHuman :: [Pos], 
-    players :: [Player],
-    visitedAI :: [Pos],
-    gameOver :: Bool
-
-    } deriving(Eq,Show)
-
-initState:: State
-initState = MkState
-            []
-            --[Human LEFT (-200,200),Human RIGHT (200,200)]
-            [AI RIGHT (-200,200), Human LEFT (200,200)]
-            []
-            False
-
-
+ 
 stateToPicture:: State -> Picture
 stateToPicture s 
   |gameOver s =  Translate (-350) 0 (Color red (Text "Game Over"))
@@ -132,34 +45,9 @@ stateToState s
           (restPlayers, restHuman, restAI) = go rest
       in (AI dir newPos : restPlayers, restHuman, newPos : restAI)
 
-
-
--- stateToState:: State -> State
--- stateToState s = s
---   { players = newPlayers, visitedHuman = visitedHuman s ++ newVisitedHuman, visitedAI = visitedAI s ++ newVisitedAI }
---   where
---     (newPlayers, newVisitedHuman, newVisitedAI) = go (players s)
-
---     go [] = ([], [], [])
---     go (Human d p : rest) =
---       let newPos = move d p
---           (restPlayers, restHuman, restAI) = go rest
---       in (Human d newPos : restPlayers, newPos : restHuman, restAI)
-
---     go (ai@(AI d p) : rest) =
---       let (dir,newPos) = aiMove ai s
---           (restPlayers, restHuman, restAI) = go rest
---       in (AI dir newPos : restPlayers, restHuman, newPos : restAI)
-
-
--- stateToState s = s {players = go (players s)}
---   where
---     go [] = []
---     go (Human d p:rest) = Human d (move d p) : go rest -- Find some way of adding the postion to the visted list once it is moved it 
---     go (AI p:rest) = AI (aiMove RIGHT p) :rest  -- make do computer movement method 
-
+ 
 eventUpdate::Event-> State -> State
-eventUpdate _ s | gameOver s = s
+eventUpdate (EventKey (SpecialKey KeySpace) _ _ _) s = if gameOver s then initState else s
 eventUpdate (EventKey (Char c) _ _ _) s = case c of
                                             'w' -> s { players = updateHumanDirection UP s}
                                             'a' -> s { players = updateHumanDirection LEFT s}
@@ -182,7 +70,7 @@ updateAiDirection d s = foldr go [] (players s)
     go human recur = human : recur
 
 main :: IO ()
-main = play FullScreen--(InWindow "Tron" (500,500) (100,100))
+main = play FullScreen
   black
   60 -- frame rate so maybe lower if it moves too fast or something im not sure
   initState
