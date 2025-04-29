@@ -19,17 +19,21 @@ move DOWN (x, y) = (x, y-1)
 move RIGHT  (x, y) = (x+1, y)
 move LEFT  (x, y) = (x-1, y)
 
-aiMove :: Player -> State -> (Direction,Pos)
-aiMove ai@(AI d p) s =  if willHitSomething ai s 
-                        then 
-                              let AI newDir _ = changeDirection ai
-                              in (newDir,move newDir p) 
-                        else (d,move d p)
+aiMove :: Player -> State -> (Direction, Pos)
+aiMove ai@(AI d p) s = inlinePerformIO ( do
+  turn <- turnChance
+  let shouldTurn = turn || willHitSomething ai s
+  if shouldTurn
+    then do
+      let AI newDir _ = changeDirection ai
+      return (newDir, move newDir p)
+    else return (d, move d p) )
 aiMove (Human d p) s = (d,move d p)
+
 
 changeDirection :: Player ->  Player
 changeDirection (AI d p ) = inlinePerformIO (do
-  gen <-  getStdGen
+  gen <-  newStdGen
   let newDirection = randomTuple gen (directionOptions d)
   return  (AI newDirection p))
 changeDirection (Human _ _) = undefined
@@ -67,9 +71,15 @@ outOfBounds (x, y) =
       halfH = fromIntegral h / 2
   in x < (-halfW) || x > halfW || y < (-halfH) || y > halfH
 
+turnChance :: IO Bool
+turnChance =   do
+  gen <- newStdGen
+  let (n, _) = randomR (1::Int, 50::Int) gen  -- 1 in 10 chance to turn
+  return (n == 1) 
+
 data State =
   MkState {
-    visitedHuman :: [Pos], -- need to convert this to a 2d list 
+    visitedHuman :: [Pos], 
     players :: [Player],
     visitedAI :: [Pos],
     gameOver :: Bool
@@ -91,7 +101,7 @@ stateToPicture s
   |otherwise =pictures [ pictures (go (players s)), color white (line (visitedHuman s)),color orange (line (visitedAI s)) ]
   where
     go [] = []
-    go (Human _ (x,y):rest) = Color white (Polygon [(x + dx, y + dy) | dx <- [-1..1], dy <- [-1..1]]) : go rest
+    go (Human _ (x,y):rest) = Color white (Polygon [(x + dx, y + dy) | dx <- [-2..2], dy <- [-2..2]]) : go rest
     go (AI _ (x,y):rest) = Color orange (Polygon [(x + dx, y + dy) | dx <- [-1..1], dy <- [-1..1]]) : go rest
 
 
