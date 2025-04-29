@@ -1,7 +1,8 @@
+{-# LANGUAGE LambdaCase #-}
 
 module Main where
 import Brillo
-import Brillo.Interface.IO.Game (Event (EventKey), Key (Char), KeyState (Up))
+import Brillo.Interface.IO.Game 
 import Brillo.Interface.Environment
 import Data.Text.Internal.Unsafe
 import System.Random
@@ -36,7 +37,7 @@ changeDirection (Human _ _) = undefined
 
 randomTuple :: RandomGen g => g -> (Direction, Direction) -> Direction
 randomTuple gen (x, y) =
-    let (n, gen') = randomR (0 :: Int , 1:: Int) gen
+    let (n, _) = randomR (0 :: Int , 1:: Int) gen
     in if n == 0 then x else y
   
 
@@ -63,31 +64,46 @@ data State =
   MkState {
     visitedHuman :: [Pos], -- need to convert this to a 2d list 
     players :: [Player],
-    visitedAI :: [Pos]
+    visitedAI :: [Pos],
+    gameOver :: Bool
 
     } deriving(Eq,Show)
 
 initState:: State
 initState = MkState
             []
-            --[Human LEFT (200,200)]
+            --[Human LEFT (-200,200),Human RIGHT (200,200)]
             [AI RIGHT (-200,200), Human LEFT (200,200)]
             []
+            False
 
 
 stateToPicture:: State -> Picture
-stateToPicture s =pictures [ pictures (go (players s)), color white (line (visitedHuman s)),color orange (line (visitedAI s)) ]
+stateToPicture s 
+  |gameOver s =  Translate (-350) 0 (Color red (Text "Game Over"))
+  |otherwise =pictures [ pictures (go (players s)), color white (line (visitedHuman s)),color orange (line (visitedAI s)) ]
   where
     go [] = []
     go (Human _ (x,y):rest) = Color white (Polygon [(x + dx, y + dy) | dx <- [-1..1], dy <- [-1..1]]) : go rest
     go (AI _ (x,y):rest) = Color orange (Polygon [(x + dx, y + dy) | dx <- [-1..1], dy <- [-1..1]]) : go rest
 
-stateToState:: State -> State
-stateToState s = s
-  { players = newPlayers, visitedHuman = visitedHuman s ++ newVisitedHuman, visitedAI = visitedAI s ++ newVisitedAI }
-  where
-    (newPlayers, newVisitedHuman, newVisitedAI) = go (players s)
 
+stateToState :: State -> State
+stateToState s
+  | gameOver s = s 
+  | otherwise = 
+      let (newPlayers, newVisitedHuman, newVisitedAI) = go (players s)
+          allVisited = visitedHuman s ++ visitedAI s
+          newPositions = map (\case
+                                Human _ p -> p
+                                AI _ p -> p) newPlayers
+          collision = any (`elem` allVisited) newPositions
+      in if collision
+         then s { gameOver = True } 
+         else s { players = newPlayers,
+                  visitedHuman = visitedHuman s ++ newVisitedHuman,
+                  visitedAI = visitedAI s ++ newVisitedAI }
+  where
     go [] = ([], [], [])
     go (Human d p : rest) =
       let newPos = move d p
@@ -100,6 +116,25 @@ stateToState s = s
       in (AI dir newPos : restPlayers, restHuman, newPos : restAI)
 
 
+
+-- stateToState:: State -> State
+-- stateToState s = s
+--   { players = newPlayers, visitedHuman = visitedHuman s ++ newVisitedHuman, visitedAI = visitedAI s ++ newVisitedAI }
+--   where
+--     (newPlayers, newVisitedHuman, newVisitedAI) = go (players s)
+
+--     go [] = ([], [], [])
+--     go (Human d p : rest) =
+--       let newPos = move d p
+--           (restPlayers, restHuman, restAI) = go rest
+--       in (Human d newPos : restPlayers, newPos : restHuman, restAI)
+
+--     go (ai@(AI d p) : rest) =
+--       let (dir,newPos) = aiMove ai s
+--           (restPlayers, restHuman, restAI) = go rest
+--       in (AI dir newPos : restPlayers, restHuman, newPos : restAI)
+
+
 -- stateToState s = s {players = go (players s)}
 --   where
 --     go [] = []
@@ -107,6 +142,7 @@ stateToState s = s
 --     go (AI p:rest) = AI (aiMove RIGHT p) :rest  -- make do computer movement method 
 
 eventUpdate::Event-> State -> State
+eventUpdate _ s | gameOver s = s
 eventUpdate (EventKey (Char c) _ _ _) s = case c of
                                             'w' -> s { players = updateHumanDirection UP s}
                                             'a' -> s { players = updateHumanDirection LEFT s}
