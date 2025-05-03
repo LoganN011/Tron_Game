@@ -57,13 +57,13 @@ willHitSomething player s = case player of
   where
     go d p =
       let newPos = move d p
-      in newPos `elem` (visitedAI s) || newPos `elem` (visitedHuman s) || outOfBounds newPos
+      in newPos `elem` (visited0 s) || newPos `elem` (visited1 s) || outOfBounds newPos
 
 
 turnChance :: IO Bool
 turnChance =   do
   gen <- newStdGen
-  let (n, _) = randomR (1::Int, 50::Int) gen  -- 1 in 10 chance to turn
+  let (n, _) = randomR (1::Int, 50::Int) gen 
   return (n == 1)
 
 screenSize::  (Int,Int)
@@ -77,19 +77,19 @@ outOfBounds (x, y) =
   in x < (-halfW) || x > halfW || y < (-halfH) || y > halfH
 
 
-data State =
-  MkState {
-    visitedHuman :: [Pos], 
-    players :: [Player],
-    visitedAI :: [Pos],
+data State = MkState
+  { 
+    visited0 :: [Pos], 
+    players  :: [Player], 
+    visited1 :: [Pos], 
     gameOver :: Bool
+  } deriving (Eq, Show)
 
-    } deriving(Eq,Show)
-
-initState:: State
+initState :: State
 initState = MkState
             []
-            --[Human LEFT (-200,200),Human RIGHT (200,200)]
-            [AI RIGHT (-200,200), Human LEFT (200,200)]
+            --[Human LEFT (-200,0),Human RIGHT (200,0)]
+            --[AI RIGHT (-200,0), Human LEFT (200,0)]
+            [AI RIGHT (-200,0), AI LEFT (200,0)]
             []
             False
