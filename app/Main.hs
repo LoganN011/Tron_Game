@@ -1,4 +1,3 @@
-{-# LANGUAGE LambdaCase #-}
 
 module Main where
 import Brillo
@@ -14,8 +13,11 @@ stateToPicture s
       pictures [ drawPlayers (players s)
                , drawTrail orange (visited0 s)
                , drawTrail blue  (visited1 s) ]
+
 drawTrail :: Color -> [Pos] -> Picture
 drawTrail c = pictures . map (\(x, y) -> Translate x y (Color c (ThickCircle 0.5 4)))
+
+--Can remove because it is hard to see when running with the thich line 
 drawPlayers :: [Player] -> Picture
 drawPlayers ps = pictures (zipWith drawPlayer [0..] ps)
   where
@@ -64,21 +66,21 @@ stateToState s
 eventUpdate :: Event -> State -> State
 eventUpdate (EventKey (SpecialKey KeySpace) _ _ _) s = if gameOver s then initState else s
 eventUpdate (EventKey (Char c) _ _ _) s = case c of
-  'w' -> s { players = updateNthHumanDirection 0 UP s }
-  'a' -> s { players = updateNthHumanDirection 0 LEFT s }
-  's' -> s { players = updateNthHumanDirection 0 DOWN s }
-  'd' -> s { players = updateNthHumanDirection 0 RIGHT s }
+  'w' -> s { players = updateNthPlayerDirection 0 UP s }
+  'a' -> s { players = updateNthPlayerDirection 0 LEFT s }
+  's' -> s { players = updateNthPlayerDirection 0 DOWN s }
+  'd' -> s { players = updateNthPlayerDirection 0 RIGHT s }
   _   -> s
 eventUpdate (EventKey (SpecialKey key) _ _ _) s = case key of
-  KeyUp    -> s { players = updateNthHumanDirection 1 UP s }
-  KeyLeft  -> s { players = updateNthHumanDirection 1 LEFT s }
-  KeyDown  -> s { players = updateNthHumanDirection 1 DOWN s }
-  KeyRight -> s { players = updateNthHumanDirection 1 RIGHT s }
+  KeyUp    -> s { players = updateNthPlayerDirection 1 UP s }
+  KeyLeft  -> s { players = updateNthPlayerDirection 1 LEFT s }
+  KeyDown  -> s { players = updateNthPlayerDirection 1 DOWN s }
+  KeyRight -> s { players = updateNthPlayerDirection 1 RIGHT s }
   _        -> s
 eventUpdate _ s = s
 
-updateNthHumanDirection :: Int -> Direction -> State -> [Player]
-updateNthHumanDirection n d s = go n (players s)
+updateNthPlayerDirection :: Int -> Direction -> State -> [Player]
+updateNthPlayerDirection n d s = go n (players s)
   where
     go _ [] = []
     go 0 (Human _ p : rest) = Human d p : rest
@@ -98,11 +100,13 @@ updateNthHumanDirection n d s = go n (players s)
 --     go (AI _ p) recur = AI d p : recur
 --     go human recur = human : recur
 
-main :: IO ()
-main = play FullScreen
-  black
-  60 -- frame rate so maybe lower if it moves too fast or something im not sure
-  initState
-  stateToPicture
-  eventUpdate
-  (\f -> stateToState)
+-- main :: IO ()
+main =
+  do
+  putStrLn "What speed do you want to play?\n60 is the normal speed"
+  input <- getLine
+  let speed = read input
+  putStrLn "What mode would you like to play?\n0,1, or 2 Players"
+  number <- getLine
+  let mode = gameMode (read number)
+  play FullScreen black speed mode stateToPicture eventUpdate (\f -> stateToState)

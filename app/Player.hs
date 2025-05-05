@@ -88,8 +88,26 @@ data State = MkState
 initState :: State
 initState = MkState
             []
-            --[Human LEFT (-200,0),Human RIGHT (200,0)]
-            --[AI RIGHT (-200,0), Human LEFT (200,0)]
-            [AI RIGHT (-200,0), AI LEFT (200,0)]
+            [AI RIGHT (-200,0), Human LEFT (200,0)]
             []
             False
+
+initState2Human :: State
+initState2Human = MkState
+            []
+            [Human RIGHT (-200,0),Human LEFT (200,0)]
+            []
+            False
+
+initState2AI :: State
+initState2AI = MkState
+            []
+            [AI RIGHT (-200,0),AI LEFT (200,0)]
+            []
+            False
+
+gameMode :: Int -> State
+gameMode x 
+  | x == 0 = initState2AI
+  | x == 1 = initState
+  |otherwise = initState2Human
