@@ -85,6 +85,12 @@ data State = MkState
     gameOver :: Bool
   } deriving (Eq, Show)
 
+resetPlayers :: [Player] -> [Player]
+resetPlayers [(AI _ _), (AI _ _)] = [AI RIGHT (-200,0),AI LEFT (200,0)]
+resetPlayers [(Human _ _), (Human _ _)] = [Human RIGHT (-200,0),Human LEFT (200,0)]
+resetPlayers [(AI _ _), (Human _ _)] = [AI RIGHT (-200,0), Human LEFT (200,0)]
+
+
 initState :: State
 initState = MkState
             []

@@ -62,9 +62,8 @@ stateToState s
       let (dir, newPos) = aiMove ai s
       in (AI dir newPos, [newPos])
 
- 
 eventUpdate :: Event -> State -> State
-eventUpdate (EventKey (SpecialKey KeySpace) _ _ _) s = if gameOver s then initState else s
+eventUpdate (EventKey (SpecialKey KeySpace) _ _ _) s = if gameOver s then MkState {visited1=[], visited0=[], players= resetPlayers (players s), gameOver=False} else s --Change this to somehow use the current mode
 eventUpdate (EventKey (Char c) _ _ _) s = case c of
   'w' -> s { players = updateNthPlayerDirection 0 UP s }
   'a' -> s { players = updateNthPlayerDirection 0 LEFT s }
@@ -88,19 +87,7 @@ updateNthPlayerDirection n d s = go n (players s)
     go i (ai : rest) = ai : go i rest
 
 
--- updateHumanDirection :: Direction-> State  -> [Player]
--- updateHumanDirection d s = foldr go [] (players s)
---   where
---     go (Human _ p) recur = Human d p : recur
---     go ai recur = ai : recur
-
--- updateAiDirection :: Direction-> State  -> [Player]
--- updateAiDirection d s = foldr go [] (players s)
---   where
---     go (AI _ p) recur = AI d p : recur
---     go human recur = human : recur
-
--- main :: IO ()
+main :: IO ()
 main =
   do
   putStrLn "What speed do you want to play?\n60 is the normal speed"
