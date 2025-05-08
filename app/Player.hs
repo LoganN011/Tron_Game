@@ -21,22 +21,26 @@ move LEFT  (x, y) = (x-1, y)
 aiMove :: Player -> State -> (Direction, Pos)
 aiMove ai@(AI d p) s = inlinePerformIO ( do
   turn <- turnChance
-  let shouldTurn = turn || willHitSomething ai s
-  if shouldTurn
+  if turn || willHitSomething ai s
     then do
-      let AI newDir _ = changeDirection ai
+      AI newDir _ <- changeDirection ai s
       return (newDir, move newDir p)
-    else return (d, move d p) )
-aiMove (Human d p) s = (d,move d p)
+    else return (d, move d p))
+aiMove (Human d p) _ = (d, move d p)
 
 
-changeDirection :: Player ->  Player
-changeDirection (AI d p ) = inlinePerformIO (do
-  gen <-  newStdGen
-  let newDirection = randomTuple gen (directionOptions d)
-  return  (AI newDirection p))
-changeDirection (Human _ _) = undefined
 
+changeDirection :: Player -> State -> IO Player
+changeDirection (AI d p) s = do
+  gen <- newStdGen
+  let (d1, d2) = directionOptions d
+      options = filter (\dir -> not (willHitSomething (AI dir p) s)) [d1, d2]
+  case options of
+    []      -> return (AI d p)            
+    [only]  -> return (AI only p)         
+    [x, y]  -> return (AI (randomTuple gen (x, y)) p)
+    _ -> return (AI d p)
+changeDirection (Human _ _) _ = undefined
 
 randomTuple :: RandomGen g => g -> (Direction, Direction) -> Direction
 randomTuple gen (x, y) =
@@ -86,9 +90,10 @@ data State = MkState
   } deriving (Eq, Show)
 
 resetPlayers :: [Player] -> [Player]
-resetPlayers [(AI _ _), (AI _ _)] = [AI RIGHT (-200,0),AI LEFT (200,0)]
-resetPlayers [(Human _ _), (Human _ _)] = [Human RIGHT (-200,0),Human LEFT (200,0)]
-resetPlayers [(AI _ _), (Human _ _)] = [AI RIGHT (-200,0), Human LEFT (200,0)]
+resetPlayers [AI _ _, AI _ _] = [AI RIGHT (-200,0),AI LEFT (200,0)]
+resetPlayers [Human _ _, Human _ _] = [Human RIGHT (-200,0),Human LEFT (200,0)]
+resetPlayers [AI _ _, Human _ _] = [AI RIGHT (-200,0), Human LEFT (200,0)]
+resetPlayers _ = [] 
 
 
 initState :: State

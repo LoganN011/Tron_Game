@@ -28,7 +28,6 @@ drawPlayers ps = pictures (zipWith drawPlayer [0..] ps)
     drawPlayer _ _               = Blank
 
 
-
 stateToState :: State -> State
 stateToState s
   | gameOver s = s
